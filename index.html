@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CareerHex — ค้นหาอาชีพที่ใช่ด้วย Holland Code</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  if (window.tailwind) {
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        colors: { riasec: { r: '#f97316', i: '#3b82f6', a: '#d946ef', s: '#10b981', e: '#f43f5e', c: '#64748b' } },
+        fontFamily: { sans: ['Prompt', '"IBM Plex Sans Thai"', 'sans-serif'] }
+      } }
+    };
+  }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html { font-family: 'Prompt', 'IBM Plex Sans Thai', sans-serif; }
+  body { min-height: 100vh; }
+
+  /* ---------- glass utilities ---------- */
+  .glass { background: rgba(255,255,255,.35); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+           border: 1px solid rgba(255,255,255,.5); border-radius: 1.5rem; box-shadow: 0 20px 40px -18px rgba(30,41,59,.25); }
+  .dark .glass { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.12); box-shadow: 0 20px 40px -18px rgba(0,0,0,.6); }
+  .glass-soft { background: rgba(255,255,255,.4); border: 1px solid rgba(255,255,255,.55); border-radius: 1rem; }
+  .dark .glass-soft { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.1); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .65rem 1.2rem; border-radius: 9999px;
+         font-weight: 500; transition: transform .15s, box-shadow .15s, opacity .15s; cursor: pointer; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: scale(.97); }
+  .btn[disabled] { opacity: .4; cursor: not-allowed; transform: none; }
+  .btn-primary { color: #fff; background: linear-gradient(135deg, #6366f1, #d946ef); box-shadow: 0 10px 24px -10px rgba(139,92,246,.8); }
+  .btn-ghost { background: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.7); }
+  .dark .btn-ghost { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.15); }
+  .btn-sm { padding: .35rem .8rem; font-size: .85rem; }
+  .field { width: 100%; padding: .6rem .9rem; border-radius: .9rem; background: rgba(255,255,255,.65); border: 1px solid rgba(148,163,184,.4); outline: none; }
+  .field:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.25); }
+  .dark .field { background: rgba(15,23,42,.6); border-color: rgba(148,163,184,.25); color: #f1f5f9; }
+  .muted { color: #475569; }
+  .dark .muted { color: #cbd5e1; }
+
+  /* ---------- blobs ---------- */
+  .blob { position: fixed; width: 34vmax; height: 34vmax; border-radius: 50%; filter: blur(80px); opacity: .22; z-index: -1;
+          animation: float 18s ease-in-out infinite alternate; pointer-events: none; }
+  .dark .blob { opacity: .16; }
+  @keyframes float { to { transform: translate(4vmax, -3vmax) scale(1.12); } }
+
+  /* ---------- animations ---------- */
+  @keyframes grow { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes pop { 0% { transform: scale(.3) translateY(12px); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 50% { transform: scale(1.35); } }
+  .hex-poly { transform-origin: 170px 160px; }
+  .hex-anim .hex-poly { animation: grow .9s cubic-bezier(.2,.9,.3,1.2) both; }
+  .pop { animation: pop .5s ease-out both; }
+  .view { animation: fadeUp .35s ease-out both; }
+  .hero-spin { transform-origin: 170px 160px; animation: spin 40s linear infinite; }
+  .hero-dot { transform-box: fill-box; transform-origin: center; animation: pulse 2.4s ease-in-out infinite; }
+
+  .emoji-btn { font-size: 1.6rem; width: 2.9rem; height: 2.9rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center;
+               filter: grayscale(.85); opacity: .6; transition: all .15s; cursor: pointer; }
+  .emoji-btn:hover { filter: none; opacity: 1; transform: scale(1.12); }
+  .emoji-btn.on { filter: none; opacity: 1; transform: scale(1.22); background: rgba(139,92,246,.22); box-shadow: 0 0 0 2px #8b5cf6; }
+  .occ-card.on { box-shadow: 0 0 0 2px #8b5cf6, 0 0 26px rgba(139,92,246,.55); background: rgba(139,92,246,.18); }
+  input[type=range] { width: 100%; height: 1.5rem; cursor: pointer; }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] .chev { transform: rotate(180deg); }
+  #toast { transition: opacity .25s, transform .25s; }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  /* ---------- print ---------- */
+  @media print {
+    .no-print, .blob { display: none !important; }
+    body { background: #fff !important; color: #0f172a !important; }
+    .glass, .glass-soft { background: #fff !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+                          box-shadow: none !important; border: 1px solid #cbd5e1 !important; break-inside: avoid; }
+    .view, .pop, .hex-anim .hex-poly { animation: none !important; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    main { max-width: none !important; padding: 0 !important; }
+  }
+</style>
+</head>
+<body class="bg-gradient-to-br from-sky-100 via-violet-100 to-amber-100 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 bg-fixed text-slate-800 dark:text-slate-100">
+  <div class="blob" style="background:#f97316; top:-8%; left:-6%"></div>
+  <div class="blob" style="background:#3b82f6; top:-10%; right:-8%; animation-delay:-3s"></div>
+  <div class="blob" style="background:#d946ef; top:38%; right:-12%; animation-delay:-6s"></div>
+  <div class="blob" style="background:#10b981; bottom:-12%; right:10%; animation-delay:-9s"></div>
+  <div class="blob" style="background:#f43f5e; bottom:-10%; left:-8%; animation-delay:-12s"></div>
+  <div class="blob" style="background:#64748b; top:40%; left:-14%; animation-delay:-15s"></div>
+
+  <div id="app"></div>
+  <div id="toast" class="no-print fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-slate-900 text-white text-sm shadow-xl opacity-0 pointer-events-none z-50"></div>
+
+<script>
+/* =====================================================================
+   DATA
+   ===================================================================== */
+const HEX = ["R", "I", "A", "S", "E", "C"];
+const WEIGHT = { activity: 0.60, occupation: 0.25, ability: 0.15 };
+const COLOR = { R: "#f97316", I: "#3b82f6", A: "#d946ef", S: "#10b981", E: "#f43f5e", C: "#64748b" };
+const LIKERT = [
+  { v: 1, e: "😣", t: "ไม่ชอบเลย" }, { v: 2, e: "🙁", t: "ไม่ค่อยชอบ" }, { v: 3, e: "😐", t: "เฉย ๆ" },
+  { v: 4, e: "🙂", t: "ชอบ" }, { v: 5, e: "😍", t: "ชอบมาก" }
+];
+const STATUS = { student: "นักเรียน", university: "นักศึกษา", worker: "คนทำงาน" };
+
+const ACTIVITIES = [
+  { id: 1,  code: "R", text: "ซ่อมเครื่องใช้ไฟฟ้าหรืออุปกรณ์ในบ้าน" },
+  { id: 2,  code: "R", text: "ประกอบเฟอร์นิเจอร์หรือสิ่งของตามแบบ" },
+  { id: 3,  code: "R", text: "ใช้เครื่องมือช่าง เช่น สว่าน เลื่อย ไขควง" },
+  { id: 4,  code: "R", text: "ปลูกต้นไม้ ทำสวน หรือเลี้ยงสัตว์" },
+  { id: 5,  code: "R", text: "ทำงานกลางแจ้งที่ได้ใช้แรงกาย" },
+  { id: 6,  code: "R", text: "ขับหรือควบคุมเครื่องจักรหรือยานพาหนะ" },
+  { id: 7,  code: "R", text: "ซ่อมรถยนต์ รถจักรยานยนต์ หรือจักรยาน" },
+  { id: 8,  code: "I", text: "ทำการทดลองทางวิทยาศาสตร์" },
+  { id: 9,  code: "I", text: "แก้โจทย์คณิตศาสตร์หรือปริศนาตรรกะ" },
+  { id: 10, code: "I", text: "สืบค้นหาสาเหตุของปัญหาที่ซับซ้อน" },
+  { id: 11, code: "I", text: "อ่านบทความวิชาการหรืองานวิจัย" },
+  { id: 12, code: "I", text: "วิเคราะห์ข้อมูลเพื่อค้นหารูปแบบหรือแนวโน้ม" },
+  { id: 13, code: "I", text: "ศึกษาว่าร่างกายมนุษย์หรือธรรมชาติทำงานอย่างไร" },
+  { id: 14, code: "I", text: "เขียนโปรแกรมเพื่อแก้ปัญหา" },
+  { id: 15, code: "A", text: "วาดภาพ ออกแบบ หรือทำงานศิลปะ" },
+  { id: 16, code: "A", text: "เขียนเรื่องสั้น บทกวี หรือบทความ" },
+  { id: 17, code: "A", text: "เล่นดนตรีหรือร้องเพลง" },
+  { id: 18, code: "A", text: "ถ่ายภาพหรือตัดต่อวิดีโอ" },
+  { id: 19, code: "A", text: "ตกแต่งห้องหรือจัดพื้นที่ให้สวยงาม" },
+  { id: 20, code: "A", text: "แสดงละครหรือการแสดงบนเวที" },
+  { id: 21, code: "A", text: "คิดไอเดียสร้างสรรค์ที่ยังไม่มีใครทำ" },
+  { id: 22, code: "S", text: "สอนหรืออธิบายเรื่องต่าง ๆ ให้คนอื่นเข้าใจ" },
+  { id: 23, code: "S", text: "รับฟังและให้คำปรึกษาเพื่อนที่มีปัญหา" },
+  { id: 24, code: "S", text: "ดูแลผู้ป่วย เด็ก หรือผู้สูงอายุ" },
+  { id: 25, code: "S", text: "ทำงานอาสาสมัครช่วยเหลือชุมชน" },
+  { id: 26, code: "S", text: "จัดกิจกรรมให้คนได้ทำงานร่วมกัน" },
+  { id: 27, code: "S", text: "ช่วยให้คนอื่นพัฒนาทักษะของตัวเอง" },
+  { id: 28, code: "S", text: "ไกล่เกลี่ยเมื่อคนรอบข้างมีความขัดแย้ง" },
+  { id: 29, code: "E", text: "ขายสินค้าหรือโน้มน้าวให้คนเห็นด้วย" },
+  { id: 30, code: "E", text: "เป็นหัวหน้าทีมหรือหัวหน้าโครงการ" },
+  { id: 31, code: "E", text: "เริ่มต้นธุรกิจของตัวเอง" },
+  { id: 32, code: "E", text: "เจรจาต่อรองเพื่อให้ได้ข้อตกลง" },
+  { id: 33, code: "E", text: "พูดต่อหน้าที่ชุมชนหรือนำเสนองาน" },
+  { id: 34, code: "E", text: "วางกลยุทธ์ให้องค์กรหรือธุรกิจเติบโต" },
+  { id: 35, code: "E", text: "ตัดสินใจเรื่องสำคัญที่มีความเสี่ยง" },
+  { id: 36, code: "C", text: "จัดเก็บเอกสารและข้อมูลให้เป็นระบบ" },
+  { id: 37, code: "C", text: "ทำบัญชีรายรับรายจ่าย" },
+  { id: 38, code: "C", text: "กรอกข้อมูลลงตารางหรือ spreadsheet อย่างแม่นยำ" },
+  { id: 39, code: "C", text: "ตรวจสอบความถูกต้องของเอกสารหรือตัวเลข" },
+  { id: 40, code: "C", text: "ทำงานตามขั้นตอนที่กำหนดไว้ชัดเจน" },
+  { id: 41, code: "C", text: "วางแผนตารางเวลาและงบประมาณ" },
+  { id: 42, code: "C", text: "จัดทำรายงานตามแบบฟอร์ม" }
+];
+const ACT_BY_ID = Object.fromEntries(ACTIVITIES.map(q => [q.id, q]));
+const ORDER = Array.from({ length: 7 }, (_, i) => Array.from({ length: 6 }, (_, c) => c * 7 + i + 1)).flat();
+const PAGE_SIZE = 6, PAGES = 7;
+
+const OCC_ITEMS = [
+  { id: "b1",  code: "R", icon: "🔧", text: "ช่างไฟฟ้า" },
+  { id: "b2",  code: "R", icon: "🏗️", text: "วิศวกรโยธา" },
+  { id: "b3",  code: "R", icon: "✈️", text: "นักบิน" },
+  { id: "b4",  code: "R", icon: "🌾", text: "เกษตรกรสมัยใหม่" },
+  { id: "b5",  code: "I", icon: "🩺", text: "แพทย์" },
+  { id: "b6",  code: "I", icon: "🔬", text: "นักวิจัยวิทยาศาสตร์" },
+  { id: "b7",  code: "I", icon: "💻", text: "นักพัฒนาซอฟต์แวร์" },
+  { id: "b8",  code: "I", icon: "📊", text: "นักวิทยาศาสตร์ข้อมูล" },
+  { id: "b9",  code: "A", icon: "🎨", text: "กราฟิกดีไซเนอร์" },
+  { id: "b10", code: "A", icon: "✍️", text: "นักเขียน" },
+  { id: "b11", code: "A", icon: "🎵", text: "นักดนตรี" },
+  { id: "b12", code: "A", icon: "🏛️", text: "สถาปนิก" },
+  { id: "b13", code: "S", icon: "👩‍⚕️", text: "พยาบาล" },
+  { id: "b14", code: "S", icon: "👩‍🏫", text: "ครู" },
+  { id: "b15", code: "S", icon: "🧠", text: "นักจิตวิทยาการปรึกษา" },
+  { id: "b16", code: "S", icon: "🤝", text: "นักสังคมสงเคราะห์" },
+  { id: "b17", code: "E", icon: "🚀", text: "ผู้ประกอบการ" },
+  { id: "b18", code: "E", icon: "📣", text: "นักการตลาด" },
+  { id: "b19", code: "E", icon: "⚖️", text: "ทนายความ" },
+  { id: "b20", code: "E", icon: "📋", text: "ผู้จัดการโครงการ" },
+  { id: "b21", code: "C", icon: "🧮", text: "นักบัญชี" },
+  { id: "b22", code: "C", icon: "🗂️", text: "เจ้าหน้าที่ธุรการ" },
+  { id: "b23", code: "C", icon: "💹", text: "นักวิเคราะห์การเงิน" },
+  { id: "b24", code: "C", icon: "📁", text: "เจ้าหน้าที่เวชระเบียน" }
+];
+
+const ABILITIES = [
+  { code: "R", text: "ทักษะเชิงช่าง การใช้มือและเครื่องมือ" },
+  { code: "I", text: "ทักษะวิทยาศาสตร์และคณิตศาสตร์" },
+  { code: "A", text: "ทักษะศิลปะและความคิดสร้างสรรค์" },
+  { code: "S", text: "ทักษะการสอนและการเข้าใจผู้อื่น" },
+  { code: "E", text: "ทักษะการโน้มน้าวและภาวะผู้นำ" },
+  { code: "C", text: "ทักษะงานเอกสาร ตัวเลข และความละเอียด" }
+];
+
+const TYPES = {
+  R: {
+    name: "Realistic", nick: "นักปฏิบัติ", emoji: "🛠️", worksWith: "สิ่งของ เครื่องมือ เครื่องจักร ธรรมชาติ", values: "ความเป็นรูปธรรม ทักษะปฏิบัติ",
+    summary: "ชอบลงมือทำมากกว่านั่งคุย ถนัดใช้มือ เครื่องมือ และร่างกาย เป็นคนตรงไปตรงมา และมีความสุขเมื่อเห็นผลงานที่จับต้องได้",
+    strengths: ["ลงมือทำจริงและแก้ปัญหาหน้างานได้ดี", "ใช้เครื่องมือและเครื่องจักรได้คล่อง", "อดทน สู้งานที่ใช้แรงกาย", "ตรงไปตรงมา พึ่งพาได้"],
+    challenges: ["อาจไม่ถนัดงานที่ต้องพูดคุยหรือเจรจามาก", "เบื่องานเอกสารหรืองานนามธรรมง่าย", "ไม่ค่อยแสดงความรู้สึกให้คนอื่นรับรู้"],
+    workEnv: "โรงงาน ไซต์งานก่อสร้าง งานกลางแจ้ง ห้องช่าง หรือที่ที่ได้ใช้อุปกรณ์จริงและเห็นผลงานเป็นชิ้นเป็นอัน",
+    majors: ["วิศวกรรมศาสตร์", "เกษตรศาสตร์", "สถาปัตยกรรมภายใน", "ช่างอุตสาหกรรม / เทคโนโลยีอุตสาหกรรม", "วิทยาศาสตร์การกีฬา"],
+    tips: ["หาโอกาสฝึกงานหรือทำโปรเจกต์ที่ได้ลงมือจริง", "ฝึกอธิบายงานของตัวเองให้คนอื่นเข้าใจ จะช่วยให้ก้าวหน้าเร็วขึ้น", "เก็บผลงานที่ทำเป็น portfolio ไว้แสดงทักษะ"]
+  },
+  I: {
+    name: "Investigative", nick: "นักค้นคว้า", emoji: "🔬", worksWith: "ความคิด ข้อมูล การวิเคราะห์ วิทยาศาสตร์", values: "ความรู้ ความจริง",
+    summary: "ช่างสงสัย ชอบตั้งคำถามว่า “ทำไม” และ “อย่างไร” สนุกกับการวิเคราะห์ หาเหตุผล และเรียนรู้เรื่องใหม่ ๆ อย่างลึกซึ้ง",
+    strengths: ["คิดวิเคราะห์และใช้เหตุผลได้ดี", "เรียนรู้ด้วยตัวเองได้เร็ว", "อดทนกับปัญหาที่ซับซ้อน", "ตัดสินใจจากข้อมูลและหลักฐาน"],
+    challenges: ["อาจคิดนานจนลงมือช้า", "ไม่ค่อยชอบงานขายหรือการโน้มน้าวคน", "บางครั้งทำงานคนเดียวจนสื่อสารกับทีมน้อยไป"],
+    workEnv: "ห้องแล็บ ทีมวิจัย ทีมเทคโนโลยี หรือองค์กรที่ให้เวลาคิด ค้นคว้า และให้อิสระทางความคิด",
+    majors: ["แพทยศาสตร์", "วิทยาศาสตร์ (ฟิสิกส์ เคมี ชีววิทยา)", "วิทยาการคอมพิวเตอร์", "เภสัชศาสตร์", "คณิตศาสตร์ / สถิติ"],
+    tips: ["ลองทำโครงงานวิจัยเล็ก ๆ หรือเข้าแข่งขันทางวิชาการ", "ฝึกสื่อสารเรื่องยากให้เข้าใจง่าย", "ตั้งกำหนดเวลาให้ตัวเองเพื่อไม่ให้ติดอยู่กับการวิเคราะห์นานเกินไป"]
+  },
+  A: {
+    name: "Artistic", nick: "นักสร้างสรรค์", emoji: "🎨", worksWith: "ความคิดสร้างสรรค์ การแสดงออก ความงาม", values: "ความงาม การแสดงออก",
+    summary: "มีจินตนาการ รักอิสระ ชอบแสดงออกผ่านงานศิลปะ ภาษา ดนตรี หรือการออกแบบ และไม่ชอบถูกตีกรอบ",
+    strengths: ["คิดไอเดียใหม่และมองต่างมุมได้", "มีสุนทรียะและใส่ใจรายละเอียดของงาน", "สื่อสารอารมณ์และเรื่องราวได้ดี", "ปรับตัวกับงานที่ไม่มีแบบแผนตายตัว"],
+    challenges: ["อึดอัดกับกฎระเบียบและงานซ้ำเดิม", "อารมณ์มีผลต่อการทำงานมาก", "การจัดการเวลาและงานเอกสารอาจเป็นจุดอ่อน"],
+    workEnv: "สตูดิโอ agency งานอิสระ หรือองค์กรที่ยืดหยุ่นและเปิดรับความคิดใหม่",
+    majors: ["ศิลปกรรมศาสตร์", "นิเทศศาสตร์", "สถาปัตยกรรมศาสตร์", "ดุริยางคศิลป์ / ดนตรี", "อักษรศาสตร์ / วรรณกรรม"],
+    tips: ["สร้าง portfolio และเผยแพร่ผลงานสม่ำเสมอ", "ฝึกวินัยด้วยการตั้งเป้างานเล็ก ๆ ทุกสัปดาห์", "เรียนรู้ทักษะธุรกิจพื้นฐานเพื่อหารายได้จากงานสร้างสรรค์"]
+  },
+  S: {
+    name: "Social", nick: "นักช่วยเหลือ", emoji: "🤝", worksWith: "ผู้คน การสอน การดูแล การให้คำปรึกษา", values: "การช่วยเหลือ ความสัมพันธ์",
+    summary: "ใจดี เข้าใจคนอื่น ชอบสอน ดูแล และช่วยให้คนรอบข้างดีขึ้น มีพลังเมื่อได้ทำงานร่วมกับผู้คน",
+    strengths: ["รับฟังและเข้าอกเข้าใจผู้อื่น", "สื่อสารและอธิบายเก่ง", "ทำงานเป็นทีมได้ดี", "อดทนและใส่ใจความรู้สึกคน"],
+    challenges: ["ปฏิเสธคนไม่ค่อยเป็นจนรับภาระมากเกินไป", "ไม่ค่อยชอบงานกับเครื่องจักรหรือข้อมูลล้วน ๆ", "เครียดง่ายเมื่อมีความขัดแย้ง"],
+    workEnv: "โรงพยาบาล โรงเรียน องค์กรชุมชน หรือทีมที่เน้นความร่วมมือและการดูแลกัน",
+    majors: ["พยาบาลศาสตร์", "ครุศาสตร์ / ศึกษาศาสตร์", "จิตวิทยา", "สังคมสงเคราะห์ศาสตร์", "กายภาพบำบัด / สหเวชศาสตร์"],
+    tips: ["ลองทำงานอาสาหรือเป็นพี่เลี้ยง/ติวเตอร์", "ฝึกตั้งขอบเขตและดูแลพลังใจของตัวเอง", "เรียนรู้ทักษะการให้คำปรึกษาเบื้องต้น"]
+  },
+  E: {
+    name: "Enterprising", nick: "นักบริหาร", emoji: "🚀", worksWith: "ผู้คน + เป้าหมายทางธุรกิจ การโน้มน้าว การนำ", values: "ความสำเร็จ อิทธิพล",
+    summary: "กล้า มั่นใจ ชอบนำ โน้มน้าว และผลักดันให้เป้าหมายสำเร็จ สนุกกับการแข่งขันและโอกาสใหม่ ๆ",
+    strengths: ["เป็นผู้นำและตัดสินใจเร็ว", "พูดโน้มน้าวและเจรจาเก่ง", "กล้าเสี่ยงและมองเห็นโอกาส", "มีพลังและมุ่งผลลัพธ์"],
+    challenges: ["อาจใจร้อนและมองข้ามรายละเอียด", "เบื่องานวิเคราะห์เชิงลึกที่ใช้เวลานาน", "บางครั้งมุ่งเป้าหมายจนลืมฟังทีม"],
+    workEnv: "ธุรกิจ ฝ่ายขาย startup หรือองค์กรที่มีเป้าหมายชัดและให้อำนาจตัดสินใจ",
+    majors: ["บริหารธุรกิจ", "นิติศาสตร์", "การตลาด", "รัฐศาสตร์", "เศรษฐศาสตร์"],
+    tips: ["ลองขายของออนไลน์หรือทำโปรเจกต์ธุรกิจเล็ก ๆ", "รับบทหัวหน้าชมรมหรือหัวหน้ากิจกรรม", "ฝึกใช้ข้อมูลประกอบการตัดสินใจ ไม่ใช่แค่สัญชาตญาณ"]
+  },
+  C: {
+    name: "Conventional", nick: "นักจัดระบบ", emoji: "🗂️", worksWith: "ข้อมูล ตัวเลข เอกสาร ระเบียบขั้นตอน", values: "ความถูกต้อง ความมั่นคง",
+    summary: "ละเอียด รอบคอบ เป็นระบบ ชอบงานที่มีขั้นตอนชัดเจน และเป็นคนที่ทีมไว้วางใจให้ดูแลความถูกต้อง",
+    strengths: ["ละเอียดและแม่นยำ", "จัดระเบียบข้อมูลและงานได้ดี", "รับผิดชอบและตรงต่อเวลา", "ทำตามมาตรฐานได้สม่ำเสมอ"],
+    challenges: ["อึดอัดกับงานที่คลุมเครือหรือเปลี่ยนบ่อย", "ไม่ค่อยชอบการด้นสดหรือความเสี่ยง", "อาจยึดขั้นตอนมากจนยืดหยุ่นน้อย"],
+    workEnv: "สำนักงาน ฝ่ายการเงิน งานข้อมูล หรือองค์กรที่มีโครงสร้างและกระบวนการชัดเจน",
+    majors: ["บัญชี", "การเงิน", "สถิติ", "สารสนเทศศาสตร์", "การจัดการโลจิสติกส์"],
+    tips: ["ฝึกทักษะ spreadsheet และเครื่องมือจัดการข้อมูล", "ลองรับงานเหรัญญิกหรือเลขานุการของชมรม", "ฝึกรับมือกับสถานการณ์ที่ไม่แน่นอนทีละเล็กละน้อย"]
+  }
+};
+
+const CAREERS = [
+  // R
+  { name: "ช่างไฟฟ้า", code: "RIC", field: "ช่าง/อุตสาหกรรม", education: "ปวช./ปวส. สาขาไฟฟ้า + ใบรับรองความรู้ความสามารถ", desc: "ติดตั้ง ตรวจสอบ และซ่อมบำรุงระบบไฟฟ้าในอาคารและโรงงานให้ปลอดภัย" },
+  { name: "ช่างยนต์", code: "RIC", field: "ช่าง/อุตสาหกรรม", education: "ปวช./ปวส. สาขาช่างยนต์", desc: "วิเคราะห์อาการ ซ่อม และบำรุงรักษาเครื่องยนต์และระบบต่าง ๆ ของยานพาหนะ" },
+  { name: "ช่างไม้", code: "RCI", field: "ช่าง/อุตสาหกรรม", education: "ปวช. หรือฝึกอบรมฝีมือแรงงาน", desc: "สร้างและประกอบเฟอร์นิเจอร์หรือโครงสร้างไม้ตามแบบด้วยความประณีต" },
+  { name: "วิศวกรโยธา", code: "RIC", field: "วิศวกรรม", education: "ปริญญาตรีวิศวกรรมโยธา + ใบ กว.", desc: "ออกแบบและควบคุมการก่อสร้างอาคาร ถนน สะพาน และโครงสร้างพื้นฐาน" },
+  { name: "วิศวกรเครื่องกล", code: "RIC", field: "วิศวกรรม", education: "ปริญญาตรีวิศวกรรมเครื่องกล + ใบ กว.", desc: "ออกแบบ พัฒนา และดูแลเครื่องจักร ระบบกลไก และระบบพลังงาน" },
+  { name: "นักบิน", code: "RIE", field: "การบิน", education: "ปริญญาตรี + ใบอนุญาตนักบินพาณิชย์ (CPL)", desc: "ควบคุมอากาศยานและตัดสินใจเพื่อความปลอดภัยของผู้โดยสารตลอดเที่ยวบิน" },
+  { name: "เกษตรกรสมัยใหม่", code: "REC", field: "เกษตร", education: "ปวส./ปริญญาตรีเกษตรศาสตร์ หรือประสบการณ์ตรง", desc: "ทำการเกษตรโดยใช้เทคโนโลยีและข้อมูลเพื่อเพิ่มผลผลิตและบริหารฟาร์มเชิงธุรกิจ" },
+  { name: "นักดับเพลิง", code: "RSE", field: "บริการสาธารณะ", education: "ม.6/ปวช. ขึ้นไป + การฝึกอบรมเฉพาะทาง", desc: "ระงับเหตุเพลิงไหม้ กู้ภัย และช่วยเหลือผู้ประสบเหตุฉุกเฉิน" },
+  // I
+  { name: "แพทย์", code: "ISR", field: "สุขภาพ", education: "แพทยศาสตรบัณฑิต (6 ปี) + ใบประกอบวิชาชีพ", desc: "วินิจฉัย รักษา และป้องกันโรค พร้อมดูแลสุขภาพของผู้ป่วยแบบองค์รวม" },
+  { name: "เภสัชกร", code: "ICS", field: "สุขภาพ", education: "เภสัชศาสตรบัณฑิต (6 ปี) + ใบประกอบวิชาชีพ", desc: "จ่ายยา ให้คำแนะนำการใช้ยา และดูแลความปลอดภัยด้านยาของผู้ป่วย" },
+  { name: "นักเทคนิคการแพทย์", code: "IRC", field: "สุขภาพ", education: "ปริญญาตรีเทคนิคการแพทย์ + ใบประกอบวิชาชีพ", desc: "ตรวจวิเคราะห์สิ่งส่งตรวจในห้องปฏิบัติการเพื่อช่วยแพทย์วินิจฉัยโรค" },
+  { name: "นักวิจัยชีวการแพทย์", code: "IRA", field: "วิทยาศาสตร์", education: "ปริญญาโท–เอก ด้านวิทยาศาสตร์ชีวการแพทย์", desc: "ศึกษาวิจัยกลไกของโรคและพัฒนาวิธีรักษา ยา หรือวัคซีนใหม่" },
+  { name: "นักพัฒนาซอฟต์แวร์", code: "ICR", field: "เทคโนโลยี", education: "ปริญญาตรีวิทยาการคอมพิวเตอร์ หรือ portfolio ที่แข็งแรง", desc: "ออกแบบ เขียน และดูแลโปรแกรมหรือแอปพลิเคชันเพื่อแก้ปัญหาให้ผู้ใช้" },
+  { name: "นักวิทยาศาสตร์ข้อมูล", code: "ICR", field: "เทคโนโลยี", education: "ปริญญาตรี–โท ด้านสถิติ คอมพิวเตอร์ หรือคณิตศาสตร์", desc: "วิเคราะห์ข้อมูลขนาดใหญ่และสร้างแบบจำลองเพื่อช่วยองค์กรตัดสินใจ" },
+  { name: "นักวิเคราะห์ระบบ", code: "ICE", field: "เทคโนโลยี", education: "ปริญญาตรีด้านคอมพิวเตอร์หรือระบบสารสนเทศ", desc: "วิเคราะห์ความต้องการของธุรกิจและออกแบบระบบสารสนเทศที่ตอบโจทย์" },
+  { name: "นักสถิติ", code: "ICA", field: "วิทยาศาสตร์", education: "ปริญญาตรี–โท ด้านสถิติ", desc: "ออกแบบการเก็บข้อมูลและใช้วิธีทางสถิติเพื่อสรุปและตีความผล" },
+  // A
+  { name: "กราฟิกดีไซเนอร์", code: "AER", field: "ออกแบบ", education: "ปริญญาตรีนิเทศศิลป์/ออกแบบ หรือ portfolio", desc: "ออกแบบงานภาพเพื่อสื่อสารแบรนด์ สื่อสิ่งพิมพ์ และสื่อดิจิทัล" },
+  { name: "UX/UI Designer", code: "AIE", field: "ออกแบบ/เทคโนโลยี", education: "ปริญญาตรีด้านออกแบบ/คอมพิวเตอร์ หรือ portfolio", desc: "วิจัยผู้ใช้และออกแบบหน้าจอและประสบการณ์ใช้งานของผลิตภัณฑ์ดิจิทัล" },
+  { name: "สถาปนิก", code: "AIR", field: "ออกแบบ", education: "สถาปัตยกรรมศาสตรบัณฑิต (5 ปี) + ใบ กส.", desc: "ออกแบบอาคารและพื้นที่ใช้สอยให้สวยงาม ใช้งานได้ดี และปลอดภัย" },
+  { name: "นักเขียน", code: "AIE", field: "สื่อสารมวลชน", education: "ไม่จำกัดวุฒิ (อักษรศาสตร์/นิเทศศาสตร์ได้เปรียบ)", desc: "สร้างสรรค์งานเขียน เช่น นิยาย บทความ หรือบทภาพยนตร์ เพื่อถ่ายทอดเรื่องราวและความคิด" },
+  { name: "นักดนตรี", code: "AES", field: "บันเทิง", education: "ปริญญาตรีดุริยางคศิลป์ หรือฝึกฝนเฉพาะทาง", desc: "บรรเลง แต่งเพลง หรือแสดงดนตรีเพื่อสร้างความบันเทิงและสื่อสารอารมณ์" },
+  { name: "ช่างภาพ", code: "ARE", field: "สื่อ", education: "ไม่จำกัดวุฒิ เน้น portfolio", desc: "ถ่ายทอดเรื่องราวผ่านภาพถ่ายสำหรับงานโฆษณา งานอีเวนต์ หรืองานศิลปะ" },
+  { name: "นักแสดง", code: "AES", field: "บันเทิง", education: "ไม่จำกัดวุฒิ (ศิลปการแสดงได้เปรียบ)", desc: "สวมบทบาทตัวละครในละคร ภาพยนตร์ หรือเวที เพื่อถ่ายทอดเรื่องราวสู่ผู้ชม" },
+  { name: "Content Creator", code: "AES", field: "สื่อดิจิทัล", education: "ไม่จำกัดวุฒิ เน้นทักษะการผลิตสื่อ", desc: "วางแผนและผลิตคอนเทนต์บนแพลตฟอร์มออนไลน์เพื่อสร้างผู้ติดตามและรายได้" },
+  // S
+  { name: "พยาบาล", code: "SIC", field: "สุขภาพ", education: "พยาบาลศาสตรบัณฑิต + ใบประกอบวิชาชีพ", desc: "ดูแลผู้ป่วยอย่างใกล้ชิด ให้การพยาบาล และประสานงานกับทีมสุขภาพ" },
+  { name: "นักกายภาพบำบัด", code: "SIR", field: "สุขภาพ", education: "ปริญญาตรีกายภาพบำบัด + ใบประกอบวิชาชีพ", desc: "ฟื้นฟูการเคลื่อนไหวและลดอาการปวดของผู้ป่วยด้วยวิธีทางกายภาพ" },
+  { name: "นักโภชนาการ", code: "SIR", field: "สุขภาพ", education: "ปริญญาตรีโภชนาการและการกำหนดอาหาร", desc: "ประเมินภาวะโภชนาการและวางแผนอาหารให้เหมาะกับสุขภาพของแต่ละคน" },
+  { name: "ครู", code: "SAE", field: "การศึกษา", education: "ปริญญาตรีครุศาสตร์/ศึกษาศาสตร์ + ใบประกอบวิชาชีพครู", desc: "ออกแบบการเรียนรู้ สอน และดูแลพัฒนาการของผู้เรียน" },
+  { name: "นักจิตวิทยาการปรึกษา", code: "SIA", field: "สุขภาพจิต", education: "ปริญญาโทจิตวิทยาการปรึกษา", desc: "รับฟังและช่วยให้ผู้รับบริการเข้าใจตนเองและรับมือกับปัญหาทางใจ" },
+  { name: "นักสังคมสงเคราะห์", code: "SEA", field: "สังคม", education: "ปริญญาตรีสังคมสงเคราะห์ศาสตร์ + ใบอนุญาต", desc: "ช่วยเหลือบุคคลและครอบครัวที่เปราะบางให้เข้าถึงสิทธิและทรัพยากร" },
+  { name: "เจ้าหน้าที่ทรัพยากรบุคคล", code: "SEC", field: "บริหาร", education: "ปริญญาตรีบริหาร/จิตวิทยา/รัฐศาสตร์", desc: "สรรหา พัฒนา และดูแลพนักงานให้ทำงานอย่างมีความสุขและมีประสิทธิภาพ" },
+  { name: "ผู้ฝึกสอนกีฬา", code: "SRE", field: "กีฬา", education: "ปริญญาตรีวิทยาศาสตร์การกีฬา + ใบรับรองผู้ฝึกสอน", desc: "วางแผนการฝึกซ้อมและพัฒนาทักษะ สมรรถภาพ และจิตใจของนักกีฬา" },
+  // E
+  { name: "ผู้ประกอบการ", code: "ESA", field: "ธุรกิจ", education: "ไม่จำกัดวุฒิ", desc: "ริเริ่มและบริหารธุรกิจของตัวเอง ตั้งแต่หาไอเดีย ระดมทุน จนถึงขยายกิจการ" },
+  { name: "นักการตลาด", code: "EAS", field: "ธุรกิจ", education: "ปริญญาตรีการตลาด/บริหารธุรกิจ/นิเทศศาสตร์", desc: "วิเคราะห์ลูกค้าและวางกลยุทธ์สื่อสารเพื่อให้สินค้าเป็นที่ต้องการ" },
+  { name: "พนักงานขาย", code: "ESC", field: "ธุรกิจ", education: "ม.6/ปวส. ขึ้นไป", desc: "นำเสนอสินค้าหรือบริการ สร้างความสัมพันธ์กับลูกค้า และปิดการขาย" },
+  { name: "ผู้จัดการโครงการ", code: "ECS", field: "บริหาร", education: "ปริญญาตรี + ประสบการณ์ (PMP ได้เปรียบ)", desc: "วางแผน ประสานทีม และควบคุมงบกับเวลาให้โครงการสำเร็จตามเป้า" },
+  { name: "ทนายความ", code: "EIS", field: "กฎหมาย", education: "นิติศาสตรบัณฑิต + ใบอนุญาตว่าความ", desc: "ให้คำปรึกษาทางกฎหมายและเป็นตัวแทนลูกความในการเจรจาหรือว่าความ" },
+  { name: "นายหน้าอสังหาริมทรัพย์", code: "ECS", field: "ธุรกิจ", education: "ไม่จำกัดวุฒิ + การอบรมนายหน้า", desc: "เป็นตัวกลางซื้อขายหรือเช่าอสังหาริมทรัพย์ และดูแลเอกสารสัญญา" },
+  { name: "นักประชาสัมพันธ์", code: "EAS", field: "สื่อสาร", education: "ปริญญาตรีนิเทศศาสตร์/สื่อสารมวลชน", desc: "สร้างและรักษาภาพลักษณ์ขององค์กรผ่านการสื่อสารกับสื่อและสาธารณชน" },
+  { name: "เชฟ/เจ้าของร้านอาหาร", code: "ERA", field: "อาหาร", education: "ปวส./ปริญญาตรีการประกอบอาหาร หรือประสบการณ์ครัว", desc: "สร้างสรรค์เมนู ควบคุมครัว และบริหารร้านให้มีคุณภาพและกำไร" },
+  // C
+  { name: "นักบัญชี", code: "CEI", field: "การเงิน", education: "ปริญญาตรีบัญชี", desc: "บันทึก จัดทำ และวิเคราะห์รายงานทางการเงินขององค์กรให้ถูกต้องตามมาตรฐาน" },
+  { name: "ผู้สอบบัญชี", code: "CEI", field: "การเงิน", education: "ปริญญาตรีบัญชี + ใบอนุญาต CPA", desc: "ตรวจสอบและให้ความเห็นต่องบการเงินว่าถูกต้องและน่าเชื่อถือ" },
+  { name: "นักวิเคราะห์การเงิน", code: "CIE", field: "การเงิน", education: "ปริญญาตรีการเงิน/เศรษฐศาสตร์ (CFA ได้เปรียบ)", desc: "วิเคราะห์ข้อมูลทางการเงินและการลงทุนเพื่อประกอบการตัดสินใจ" },
+  { name: "นักวิเคราะห์ข้อมูลธุรกิจ", code: "CIE", field: "เทคโนโลยี", education: "ปริญญาตรีด้านธุรกิจ สถิติ หรือไอที", desc: "จัดทำรายงานและ dashboard จากข้อมูลเพื่อช่วยให้ธุรกิจเห็นภาพและปรับปรุงงาน" },
+  { name: "เจ้าหน้าที่ธุรการ", code: "CES", field: "สำนักงาน", education: "ปวส./ปริญญาตรีทุกสาขา", desc: "ดูแลเอกสาร ประสานงาน และสนับสนุนให้งานในสำนักงานเดินได้ราบรื่น" },
+  { name: "เจ้าหน้าที่เวชระเบียน", code: "CIR", field: "สุขภาพ", education: "ปวส./ปริญญาตรีเวชระเบียน", desc: "จัดเก็บ ลงรหัส และดูแลข้อมูลประวัติผู้ป่วยให้ถูกต้องและเป็นความลับ" },
+  { name: "บรรณารักษ์", code: "CSE", field: "สารสนเทศ", education: "ปริญญาตรีบรรณารักษศาสตร์/สารสนเทศศาสตร์", desc: "จัดระบบทรัพยากรสารสนเทศและช่วยผู้ใช้ค้นหาข้อมูลที่ต้องการ" },
+  { name: "Software Tester (QA)", code: "CIR", field: "เทคโนโลยี", education: "ปริญญาตรีด้านคอมพิวเตอร์ หรือประสบการณ์ทดสอบระบบ", desc: "ออกแบบและทดสอบซอฟต์แวร์อย่างเป็นระบบเพื่อหาข้อบกพร่องก่อนถึงมือผู้ใช้" }
+];
+const FIELDS = [...new Set(CAREERS.map(c => c.field))];
+
+const DISCLAIMER = "แบบทดสอบนี้สร้างขึ้นเพื่อการเรียนรู้ทฤษฎีอาชีพของ John L. Holland ข้อคำถามเขียนขึ้นใหม่ทั้งหมด <b>ไม่ใช่แบบทดสอบเชิงพาณิชย์ฉบับใด</b> (เช่น Self-Directed Search®) และยังไม่ผ่านการตรวจสอบความเที่ยงตรงในคนไทย Holland Code ของอาชีพเป็นค่าประมาณเพื่อการศึกษา ผลการทดสอบสะท้อน <b>ความสนใจ</b> ไม่ใช่ความถนัดหรือความสามารถ การเลือกอาชีพควรพิจารณาร่วมกับความถนัด ค่านิยม สภาพเศรษฐกิจ และคำแนะนำจากครูแนะแนวหรือผู้เชี่ยวชาญด้านอาชีพ";
+
+/* =====================================================================
+   SCORING
+   ===================================================================== */
+function hexDistance(a, b) {
+  const d = Math.abs(HEX.indexOf(a) - HEX.indexOf(b));
+  return Math.min(d, 6 - d);
+}
+function getConsistency(a, b) {
+  const d = hexDistance(a, b);
+  return { distance: d, level: d === 1 ? "สูง" : d === 2 ? "ปานกลาง" : "ต่ำ" };
+}
+function getDifferentiation(scores) {
+  const v = Object.values(scores);
+  const range = Math.max(...v) - Math.min(...v);
+  return { range, level: range >= 40 ? "สูง" : range >= 20 ? "ปานกลาง" : "ต่ำ" };
+}
+// ทุกอย่างในหน้าผลคำนวณจาก scores ได้ จึงใช้ซ้ำกับผลย้อนหลังใน history
+function derive(scores) {
+  const ranked = [...HEX].sort((a, b) => scores[b] - scores[a]);
+  return {
+    scores, ranked, code: ranked.slice(0, 3).join(""),
+    consistency: getConsistency(ranked[0], ranked[1]),
+    differentiation: getDifferentiation(scores),
+    tieWarning: scores[ranked[2]] === scores[ranked[3]]
+  };
+}
+function calculate({ activities, occupations, abilities }) {
+  const scores = {};
+  HEX.forEach(c => {
+    const actSum = ACTIVITIES.filter(q => q.code === c).reduce((s, q) => s + activities[q.id], 0);
+    const actPct = ((actSum - 7) / 28) * 100;
+    const occPct = (OCC_ITEMS.filter(o => o.code === c && occupations.has(o.id)).length / 4) * 100;
+    const ablPct = ((abilities[c] - 1) / 6) * 100;
+    scores[c] = Math.round(actPct * WEIGHT.activity + occPct * WEIGHT.occupation + ablPct * WEIGHT.ability);
+  });
+  return derive(scores);
+}
+function careerFit(userCode, occCode) {
+  const w = [3, 2, 1];
+  let fit = 0;
+  [...userCode].forEach((L, i) => {
+    const j = occCode.indexOf(L);
+    if (j !== -1) fit += w[i] * w[j];
+  });
+  return Math.round((fit / 14) * 100);
+}
+function fitLevel(p) {
+  return p >= 70 ? { text: "เข้ากันมาก", color: "#10b981" } : p >= 40 ? { text: "เข้ากันพอสมควร", color: "#f59e0b" } : { text: "เข้ากันน้อย", color: "#f43f5e" };
+}
+
+/* =====================================================================
+   STATE + STORAGE
+   ===================================================================== */
+const K = { progress: "careerhex:progress", history: "careerhex:history", theme: "careerhex:theme" };
+const TEST_VIEWS = ["profile", "partA", "partB", "partC"];
+const defaultAbilities = () => Object.fromEntries(HEX.map(c => [c, 4]));
+const defaultProfile = () => ({ name: "", status: "student", hasTarget: false, targetCareer: "" });
+
+const state = {
+  view: "landing", profile: defaultProfile(), activities: {}, occupations: new Set(), abilities: defaultAbilities(),
+  index: 0, cursor: 0, startedAt: null, theme: "light",
+  result: null, fresh: false, history: [], compare: [],
+  explorer: { q: "", codes: new Set(), field: "", sort: "fit" }
+};
+let modalFn = null;
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
+};
+function saveProgress() {
+  if (!state.startedAt) return;
+  store.set(K.progress, {
+    profile: state.profile, activities: state.activities, occupations: [...state.occupations], abilities: state.abilities,
+    step: TEST_VIEWS.includes(state.view) ? state.view : "profile", index: state.index, startedAt: state.startedAt
+  });
+}
+function loadProgress() {
+  const p = store.get(K.progress, null);
+  if (!p || typeof p !== "object" || !p.startedAt) return false;
+  state.profile = { ...defaultProfile(), ...(p.profile || {}) };
+  state.activities = p.activities || {};
+  state.occupations = new Set(Array.isArray(p.occupations) ? p.occupations : []);
+  state.abilities = { ...defaultAbilities(), ...(p.abilities || {}) };
+  state.index = Math.min(Math.max(p.index | 0, 0), PAGES - 1);
+  state.startedAt = p.startedAt;
+  return TEST_VIEWS.includes(p.step) ? p.step : "profile";
+}
+function resetTest() {
+  state.profile = defaultProfile(); state.activities = {}; state.occupations = new Set(); state.abilities = defaultAbilities();
+  state.index = 0; state.cursor = 0; state.startedAt = null;
+  store.del(K.progress);
+}
+const hasProgress = () => !!state.startedAt;
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+const letter = (L, size = "w-6 h-6 text-xs") => `<span class="inline-flex items-center justify-center ${size} rounded-md text-white font-bold" style="background:${COLOR[L]}">${L}</span>`;
+const codeChips = code => `<span class="inline-flex gap-0.5">${[...code].map(L => letter(L)).join("")}</span>`;
+const fmtDate = iso => { try { return new Date(iso).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return iso; } };
+const fmtDur = s => `${Math.floor(s / 60)} นาที ${s % 60} วินาที`;
+const pageIds = i => ORDER.slice(i * PAGE_SIZE, i * PAGE_SIZE + PAGE_SIZE);
+const pageDone = i => pageIds(i).every(id => state.activities[id]);
+const answeredCount = () => ACTIVITIES.filter(q => state.activities[q.id]).length;
+const userCode = () => (state.result || state.history[0] || {}).code || null;
+
+function mulberry32(a) {
+  return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function seededShuffle(arr, seed) {
+  const a = [...arr], rnd = mulberry32(seed % 2147483647);
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+let toastTimer;
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.style.opacity = 1;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.opacity = 0; }, 2200);
+}
+function applyTheme() { document.documentElement.classList.toggle("dark", state.theme === "dark"); }
+
+/* =====================================================================
+   SVG
+   ===================================================================== */
+const HC = { cx: 170, cy: 160, r: 100 };
+function hexPoint(i, frac) {
+  const a = (-120 + i * 60) * Math.PI / 180;   // R บนซ้าย แล้ววนตามเข็มตามลำดับ HEX
+  return [HC.cx + HC.r * frac * Math.cos(a), HC.cy + HC.r * frac * Math.sin(a)];
+}
+const hexPoly = fracs => fracs.map((f, i) => hexPoint(i, f).map(n => n.toFixed(1)).join(",")).join(" ");
+
+function renderHexagon(scores, opts = {}) {
+  const { compare = null, animate = false, top = [], hero = false } = opts;
+  const rings = [.25, .5, .75, 1].map(f => `<polygon points="${hexPoly(HEX.map(() => f))}" fill="none" stroke="currentColor" stroke-opacity="${f === 1 ? .35 : .14}" stroke-width="1"/>`).join("");
+  const axes = HEX.map((_, i) => { const [x, y] = hexPoint(i, 1); return `<line x1="${HC.cx}" y1="${HC.cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="currentColor" stroke-opacity=".14"/>`; }).join("");
+  const frac = s => HEX.map(c => Math.max(s[c], 3) / 100);
+  let polys = "";
+  if (compare) polys += `<polygon class="hex-poly" points="${hexPoly(frac(compare))}" fill="#f59e0b" fill-opacity=".18" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round"/>`;
+  if (scores) {
+    polys += `<polygon class="hex-poly" points="${hexPoly(frac(scores))}" fill="url(#hexGrad)" fill-opacity=".45" stroke="#8b5cf6" stroke-width="2.5" stroke-linejoin="round"/>`;
+    polys += `<g class="hex-poly">${HEX.map((c, i) => { const [x, y] = hexPoint(i, Math.max(scores[c], 3) / 100); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${top.includes(c) ? 5.5 : 3.5}" fill="${COLOR[c]}" stroke="#fff" stroke-width="1.5"/>`; }).join("")}</g>`;
+  }
+  const labels = HEX.map((c, i) => {
+    const [x, y] = hexPoint(i, 1.28), hi = top.includes(c);
+    return `<g>${hi ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="18" fill="${COLOR[c]}" fill-opacity=".25"/>` : ""}
+      <circle ${hero ? `class="hero-dot" style="animation-delay:${i * .4}s"` : ""} cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="13" fill="${COLOR[c]}"/>
+      <text x="${x.toFixed(1)}" y="${(y + 4.5).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">${c}</text>
+      ${scores ? `<text x="${x.toFixed(1)}" y="${(y + 29).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">${scores[c]}${compare ? ` / ${compare[c]}` : ""}</text>` : ""}</g>`;
+  }).join("");
+  const heroPoly = hero ? `<polygon class="hero-spin" points="${hexPoly([.85, .5, .7, .9, .45, .6])}" fill="url(#hexGrad)" fill-opacity=".4" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>` : "";
+  return `<svg viewBox="0 0 340 330" class="w-full max-w-sm mx-auto ${animate ? "hex-anim" : ""}" role="img" aria-label="Hexagon RIASEC">
+    <defs><linearGradient id="hexGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#d946ef"/></linearGradient></defs>
+    ${rings}${axes}${heroPoly}${polys}${labels}</svg>`;
+}
+
+function gauge(frac, title, level, sub) {
+  const len = Math.PI * 50, col = level === "สูง" ? "#10b981" : level === "ปานกลาง" ? "#f59e0b" : "#f43f5e";
+  return `<div class="glass-soft p-4 text-center">
+    <div class="text-sm font-semibold">${title}</div>
+    <svg viewBox="0 0 120 68" class="w-40 mx-auto">
+      <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="currentColor" stroke-opacity=".15" stroke-width="10" stroke-linecap="round"/>
+      <path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="${col}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(len * frac).toFixed(1)} ${len.toFixed(1)}"/>
+      <text x="60" y="58" text-anchor="middle" font-size="15" font-weight="700" fill="currentColor">${level}</text>
+    </svg>
+    <div class="text-xs muted">${sub}</div></div>`;
+}
+
+/* =====================================================================
+   VIEWS
+   ===================================================================== */
+function header() {
+  const nav = (v, label) => `<button data-action="go" data-view="${v}" class="btn btn-sm ${state.view === v ? "btn-primary" : "btn-ghost"}">${label}</button>`;
+  return `<header class="no-print sticky top-0 z-30 px-3 pt-3">
+    <div class="glass max-w-5xl mx-auto flex items-center justify-between gap-2 px-4 py-2 !rounded-full">
+      <button data-action="go" data-view="landing" class="font-bold text-lg whitespace-nowrap">⬡ CareerHex</button>
+      <nav class="flex items-center gap-1.5 overflow-x-auto">
+        ${nav("about", "ทฤษฎี")}${nav("explorer", "อาชีพ")}${nav("history", "ประวัติ")}
+        <button data-action="theme" class="btn btn-sm btn-ghost" aria-label="สลับโหมดสี">${state.theme === "dark" ? "☀️" : "🌙"}</button>
+      </nav>
+    </div></header>`;
+}
+
+function viewLanding() {
+  return `<section class="grid md:grid-cols-2 gap-6 items-center">
+    <div class="text-center md:text-left">
+      <div class="inline-block glass-soft px-3 py-1 text-sm mb-4">🧭 ทฤษฎีอาชีพของ John L. Holland</div>
+      <h1 class="text-4xl md:text-5xl font-bold leading-tight">ค้นหาอาชีพที่ใช่<br>ด้วย <span class="bg-gradient-to-r from-indigo-500 to-fuchsia-500 bg-clip-text text-transparent">Holland Code</span></h1>
+      <p class="mt-4 muted">ตอบคำถามเกี่ยวกับกิจกรรม อาชีพ และความสามารถของคุณ แล้วรับรหัส 3 ตัวอักษรที่บอกว่าคุณเหมาะกับงานและสาขาวิชาแบบไหน ใช้เวลาประมาณ 10 นาที ⏱️</p>
+      <div class="mt-6 flex flex-wrap gap-3 justify-center md:justify-start">
+        ${hasProgress()
+          ? `<button data-action="resume" class="btn btn-primary">▶️ ทำต่อจากเดิม (${answeredCount()}/42)</button>
+             <button data-action="start-new" class="btn btn-ghost">🔄 เริ่มใหม่</button>`
+          : `<button data-action="start" class="btn btn-primary text-lg">🚀 เริ่มทำแบบทดสอบ</button>`}
+        <button data-action="go" data-view="about" class="btn btn-ghost">📖 ศึกษาทฤษฎี</button>
+        ${state.history.length ? `<button data-action="go" data-view="history" class="btn btn-ghost">🗂️ ผลครั้งก่อน (${state.history.length})</button>` : ""}
+      </div>
+    </div>
+    <div class="glass p-4">${renderHexagon(null, { hero: true })}</div>
+  </section>
+  <section class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-8">
+    ${HEX.map(c => `<div class="glass-soft p-3 flex items-center gap-3">${letter(c, "w-9 h-9 text-base shrink-0")}<div><div class="font-semibold text-sm">${TYPES[c].emoji} ${TYPES[c].nick}</div><div class="text-xs muted">${TYPES[c].name}</div></div></div>`).join("")}
+  </section>
+  <p class="text-xs muted mt-8 glass-soft p-4">⚠️ ${DISCLAIMER}</p>`;
+}
+
+function viewAbout() {
+  const concepts = [
+    ["🎯", "Congruence (ความสอดคล้อง)", "บุคลิกภาพตรงกับสภาพแวดล้อมงาน → พึงพอใจและอยู่กับงานได้นาน", "% ความเข้ากันกับแต่ละอาชีพ"],
+    ["🔗", "Consistency (ความคงเส้นคงวา)", "ตัวอักษร 2 ตัวแรกอยู่ใกล้กันบน hexagon → ความสนใจสอดประสานกัน", "ระดับ สูง / ปานกลาง / ต่ำ"],
+    ["📈", "Differentiation (ความชัดเจน)", "คะแนนสูงสุดต่างจากต่ำสุดมาก → รู้ชัดว่าชอบและไม่ชอบอะไร", "ระดับ สูง / ปานกลาง / ต่ำ"],
+    ["🪪", "Identity (ความชัดเจนในเป้าหมาย)", "รู้เป้าหมาย ความสนใจ และความสามารถของตัวเองอย่างมั่นคง", "คำถาม “มีอาชีพในใจแล้วหรือยัง”"]
+  ];
+  return `<h1 class="text-3xl font-bold mb-2">📖 เกี่ยวกับทฤษฎี</h1>
+  <p class="muted mb-6">John L. Holland เสนอใน <i>Making Vocational Choices</i> (1959, 1997) ว่าคนและสภาพแวดล้อมการทำงานแบ่งได้เป็น 6 แบบ คนจะพึงพอใจและประสบความสำเร็จเมื่อ <b>บุคลิกภาพสอดคล้องกับสภาพแวดล้อมงาน</b></p>
+  <div class="grid md:grid-cols-2 gap-6">
+    <div class="glass p-5">
+      <h2 class="font-semibold text-xl mb-2">⬡ Hexagon Model</h2>
+      ${renderHexagon(null)}
+      <ul class="text-sm muted space-y-1 mt-2">
+        <li>• ลำดับรอบหกเหลี่ยม: <b>R → I → A → S → E → C</b></li>
+        <li>• ชนิดที่ <b>อยู่ติดกัน</b> คล้ายกันมาก (เช่น R–I, S–E)</li>
+        <li>• ชนิดที่ <b>อยู่ตรงข้าม</b> ต่างกันมาก (R–S, I–E, A–C)</li>
+      </ul>
+    </div>
+    <div class="space-y-3">
+      ${concepts.map(([e, t, d, u]) => `<div class="glass p-4"><div class="font-semibold">${e} ${t}</div><p class="text-sm muted mt-1">${d}</p><p class="text-xs mt-1">ในแอป: ${u}</p></div>`).join("")}
+    </div>
+  </div>
+  <h2 class="font-semibold text-xl mt-8 mb-3">หกบุคลิกภาพ (RIASEC)</h2>
+  <div class="grid md:grid-cols-2 gap-4">
+    ${HEX.map(c => { const t = TYPES[c]; return `<div class="glass p-5" style="border-left:6px solid ${COLOR[c]}">
+      <div class="flex items-center gap-3">${letter(c, "w-10 h-10 text-lg")}<div><div class="font-semibold">${t.emoji} ${t.name} — ${t.nick}</div><div class="text-xs muted">ชอบทำงานกับ: ${t.worksWith}</div></div></div>
+      <p class="text-sm mt-3">${t.summary}</p>
+      <p class="text-xs muted mt-2"><b>ค่านิยม:</b> ${t.values} · <b>สภาพแวดล้อม:</b> ${t.workEnv}</p>
+      <p class="text-xs muted mt-1"><b>สาขาวิชา:</b> ${t.majors.join(", ")}</p></div>`; }).join("")}
+  </div>
+  <p class="text-xs muted mt-8 glass-soft p-4">⚠️ ${DISCLAIMER}</p>
+  <div class="mt-6 text-center no-print"><button data-action="${hasProgress() ? "resume" : "start"}" class="btn btn-primary">${hasProgress() ? "▶️ ทำแบบทดสอบต่อ" : "🚀 เริ่มทำแบบทดสอบ"}</button></div>`;
+}
+
+function stepper(title, sub, pct) {
+  const steps = [["profile", "ข้อมูล"], ["partA", "A กิจกรรม"], ["partB", "B อาชีพ"], ["partC", "C ความสามารถ"]];
+  const cur = steps.findIndex(s => s[0] === state.view);
+  return `<div class="mb-5">
+    <div class="flex gap-1.5 text-xs mb-3">${steps.map(([, l], i) => `<span class="px-2.5 py-1 rounded-full ${i === cur ? "bg-violet-500 text-white" : i < cur ? "bg-emerald-500/80 text-white" : "glass-soft"}">${i < cur ? "✓ " : ""}${l}</span>`).join("")}</div>
+    <h1 class="text-2xl font-bold">${title}</h1><p class="muted text-sm mt-1">${sub}</p>
+    ${pct != null ? `<div class="h-2 rounded-full bg-white/40 dark:bg-white/10 mt-3 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 transition-all" style="width:${pct}%"></div></div>` : ""}
+  </div>`;
+}
+const navButtons = (nextLabel, disabled, hint = "") => `<div class="flex items-center justify-between gap-3 mt-6">
+  <button data-action="prev" class="btn btn-ghost">← ย้อนกลับ</button>
+  <span class="text-xs muted text-center hidden sm:block">${hint}</span>
+  <button data-action="next" class="btn btn-primary" ${disabled ? "disabled" : ""}>${nextLabel} →</button></div>`;
+
+function viewProfile() {
+  const p = state.profile, names = CAREERS.map(c => c.name).sort((a, b) => a.localeCompare(b, "th"));
+  return `${stepper("👋 มารู้จักกันก่อน", "ข้อมูลนี้เก็บไว้ในเครื่องของคุณเท่านั้น")}
+  <div class="glass p-5 space-y-5">
+    <label class="block"><span class="text-sm font-medium">ชื่อเล่น <span class="muted">(ไม่ใส่ก็ได้)</span></span>
+      <input data-input="name" class="field mt-1" maxlength="30" placeholder="เช่น ต้น" value="${esc(p.name)}"></label>
+    <div><span class="text-sm font-medium">สถานะตอนนี้</span>
+      <div class="flex flex-wrap gap-2 mt-1">${Object.entries(STATUS).map(([k, l]) => `<button data-action="status" data-v="${k}" class="btn btn-sm ${p.status === k ? "btn-primary" : "btn-ghost"}">${l}</button>`).join("")}</div></div>
+    <div><span class="text-sm font-medium">มีอาชีพที่อยากเป็นแล้วหรือยัง?</span>
+      <div class="flex flex-wrap gap-2 mt-1">
+        <button data-action="has-target" data-v="1" class="btn btn-sm ${p.hasTarget ? "btn-primary" : "btn-ghost"}">✅ มีแล้ว</button>
+        <button data-action="has-target" data-v="0" class="btn btn-sm ${!p.hasTarget ? "btn-primary" : "btn-ghost"}">🤔 ยังไม่แน่ใจ</button></div>
+      ${p.hasTarget ? `<select data-input="target" class="field mt-3"><option value="">— เลือกอาชีพในใจ (ไม่เลือกก็ได้) —</option>${names.map(n => `<option ${p.targetCareer === n ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>
+      <p class="text-xs muted mt-1">เราจะนำไปเทียบความเข้ากันกับผลของคุณในหน้าสรุป</p>` : ""}
+    </div>
+  </div>${navButtons("เริ่ม Part A", false)}`;
+}
+
+function viewPartA() {
+  const ids = pageIds(state.index), done = pageDone(state.index);
+  return `${stepper(`Part A — กิจกรรม <span class="text-base font-normal muted">หน้า ${state.index + 1}/${PAGES}</span>`,
+    "คุณชอบทำกิจกรรมเหล่านี้แค่ไหน? ไม่ต้องคำนึงว่าทำเป็นหรือไม่ หรือได้เงินเท่าไร", Math.round(answeredCount() / 42 * 100))}
+  <div class="flex justify-between text-[11px] muted px-1 mb-2 sm:justify-end sm:gap-3">${LIKERT.map(l => `<span>${l.e} ${l.t}</span>`).join("")}</div>
+  <div class="space-y-3">
+    ${ids.map((id, i) => { const q = ACT_BY_ID[id], v = state.activities[id]; return `<div class="glass p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${i === state.cursor ? "ring-2 ring-violet-400" : ""}">
+      <div class="flex-1"><span class="muted text-sm mr-1">${state.index * PAGE_SIZE + i + 1}.</span>${q.text}</div>
+      <div class="flex gap-1.5 justify-between sm:justify-end" role="radiogroup" aria-label="${esc(q.text)}">
+        ${LIKERT.map(l => `<button class="emoji-btn ${v === l.v ? "on" : ""}" role="radio" aria-checked="${v === l.v}" title="${l.v} · ${l.t}" data-action="answer" data-id="${id}" data-v="${l.v}">${l.e}</button>`).join("")}
+      </div></div>`; }).join("")}
+  </div>
+  ${navButtons(state.index === PAGES - 1 ? "ไป Part B" : "หน้าถัดไป", !done, done ? "⌨️ กด 1–5 เพื่อตอบ · ←/→ เปลี่ยนหน้า" : "ตอบให้ครบทุกข้อก่อนไปต่อ · กด 1–5 เพื่อตอบ")}`;
+}
+
+function viewPartB() {
+  const items = seededShuffle(OCC_ITEMS, state.startedAt || 1);
+  return `${stepper("Part B — อาชีพที่น่าสนใจ", "แตะเลือกอาชีพที่คุณรู้สึกว่า “น่าสนใจ” เลือกได้หลายใบ หรือไม่เลือกเลยก็ได้")}
+  <div class="glass-soft inline-block px-3 py-1 text-sm mb-3">เลือกแล้ว <b id="occ-count">${state.occupations.size}</b> อาชีพ</div>
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+    ${items.map(o => { const on = state.occupations.has(o.id); return `<button data-action="occ" data-id="${o.id}" aria-pressed="${on}" class="occ-card glass p-4 text-center relative transition ${on ? "on" : ""}">
+      <span class="absolute top-2 right-2 w-6 h-6 rounded-full bg-violet-500 text-white text-sm items-center justify-center ${on ? "flex" : "hidden"}">✓</span>
+      <div class="text-4xl">${o.icon}</div><div class="text-sm font-medium mt-2">${o.text}</div></button>`; }).join("")}
+  </div>${navButtons("ไป Part C", false)}`;
+}
+
+function viewPartC() {
+  return `${stepper("Part C — ประเมินความสามารถตนเอง", "เทียบกับคนวัยเดียวกัน คุณคิดว่าตัวเองอยู่ระดับไหน (1 = ต่ำกว่ามาก · 4 = เท่า ๆ กัน · 7 = สูงกว่ามาก)")}
+  <div class="glass p-5 space-y-5">
+    ${ABILITIES.map(a => `<div><div class="flex items-center justify-between gap-3"><label for="ab-${a.code}" class="text-sm font-medium">${a.text}</label>
+      <span id="abv-${a.code}" class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold shrink-0" style="background:${COLOR[a.code]}">${state.abilities[a.code]}</span></div>
+      <input id="ab-${a.code}" type="range" min="1" max="7" step="1" value="${state.abilities[a.code]}" data-input="ability" data-code="${a.code}" style="accent-color:${COLOR[a.code]}">
+      <div class="flex justify-between text-[11px] muted"><span>ต่ำกว่ามาก</span><span>เท่า ๆ กัน</span><span>สูงกว่ามาก</span></div></div>`).join("")}
+  </div>${navButtons("✨ ดูผลลัพธ์", false)}`;
+}
+
+function careerCard(c, fit, rank) {
+  const lv = fit == null ? null : fitLevel(fit);
+  return `<details class="glass-soft p-3">
+    <summary class="flex items-center gap-3">
+      ${rank ? `<span class="w-6 text-center text-sm font-bold muted">${rank}</span>` : ""}
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap"><span class="font-medium">${esc(c.name)}</span>${codeChips(c.code)}<span class="text-xs muted">${esc(c.field)}</span></div>
+        ${lv ? `<div class="flex items-center gap-2 mt-1.5"><div class="flex-1 h-2 rounded-full bg-slate-400/20 overflow-hidden"><div class="h-full rounded-full" style="width:${fit}%;background:${lv.color}"></div></div>
+          <span class="text-xs font-semibold w-28 text-right" style="color:${lv.color}">${fit}% · ${lv.text}</span></div>` : ""}
+      </div><span class="chev transition-transform muted no-print">▾</span>
+    </summary>
+    <div class="text-sm mt-3 pl-1 space-y-1"><p>${esc(c.desc)}</p><p class="muted">🎓 ${esc(c.education)}</p></div>
+  </details>`;
+}
+
+function insightsFor(rec, d) {
+  const out = [];
+  if (Math.max(...Object.values(rec.scores)) < 40) out.push(["🌱", "ยังไม่พบความสนใจที่ชัดเจน อาจเกิดจากความเหนื่อยล้าหรือยังไม่ได้ลองทำสิ่งต่าง ๆ มากพอ"]);
+  if (d.differentiation.level === "ต่ำ") out.push(["🧩", "ความสนใจของคุณกระจายหลายด้าน ลองทดลองทำกิจกรรมจริง ฝึกงาน หรือคุยกับคนในอาชีพก่อนตัดสินใจ"]);
+  if (d.consistency.level === "ต่ำ") out.push(["↔️", "ความสนใจ 2 อันดับแรกอยู่ตรงข้ามกันบน hexagon อาจต้องหางานที่ผสมทั้งสองด้าน หรือทำงานอดิเรกเติมอีกด้าน"]);
+  if (d.tieWarning) { const alt = d.ranked[0] + d.ranked[1] + d.ranked[3]; out.push(["⚖️", `อันดับ 3 และ 4 ของคุณคะแนนเท่ากัน รหัสทางเลือกที่ควรพิจารณาด้วยคือ <b>${alt}</b>`]); }
+  if (rec.durationSec < 90) out.push(["⏱️", "คุณใช้เวลาทำน้อยกว่า 90 วินาที ผลอาจไม่สะท้อนตัวตนจริง ลองทำใหม่อย่างตั้งใจอีกครั้ง"]);
+  if (!out.length) out.push(["✨", "โปรไฟล์ของคุณค่อนข้างชัดเจนและสอดประสานกัน ใช้รหัสนี้เป็นจุดเริ่มต้นสำรวจอาชีพได้เลย"]);
+  return out;
+}
+
+function viewResult() {
+  const rec = state.result;
+  if (!rec) return `<div class="glass p-8 text-center"><p>ยังไม่มีผลการทดสอบ</p><button data-action="start" class="btn btn-primary mt-4">เริ่มทำแบบทดสอบ</button></div>`;
+  const d = derive(rec.scores), top3 = d.ranked.slice(0, 3), anim = state.fresh;
+  const careers = CAREERS.map(c => ({ c, fit: careerFit(d.code, c.code) })).sort((a, b) => b.fit - a.fit).slice(0, 10);
+  const target = rec.targetCareer && CAREERS.find(c => c.name === rec.targetCareer);
+  let targetHtml = "";
+  if (target) {
+    const f = careerFit(d.code, target.code), lv = fitLevel(f);
+    const advice = f >= 70 ? "อาชีพในใจสอดคล้องกับความสนใจของคุณมาก เดินหน้าหาข้อมูลเส้นทางเรียนและประสบการณ์จริงได้เลย"
+      : f >= 40 ? "อาชีพในใจเข้ากับความสนใจบางส่วน ลองดูว่าส่วนไหนของงานที่ตรงกับคุณ และมีสายงานย่อยใดที่เข้ากับคุณมากกว่า"
+      : "อาชีพในใจต่างจากรูปแบบความสนใจของคุณพอสมควร ไม่ได้แปลว่าทำไม่ได้ แต่ควรลองสัมผัสงานจริงหรือคุยกับคนในอาชีพเพื่อให้มั่นใจก่อนตัดสินใจ";
+    targetHtml = `<section class="glass p-5 mt-5" style="border-left:6px solid ${lv.color}">
+      <h2 class="font-semibold text-lg">💭 อาชีพในใจของคุณ</h2>
+      <div class="flex items-center gap-3 flex-wrap mt-2"><span class="text-xl font-bold">${esc(target.name)}</span>${codeChips(target.code)}
+        <span class="font-bold text-xl" style="color:${lv.color}">${f}%</span><span class="text-sm" style="color:${lv.color}">${lv.text}</span></div>
+      <p class="text-sm mt-2">${advice}</p></section>`;
+  }
+  return `<div class="flex flex-wrap items-end justify-between gap-2 mb-4">
+    <div><h1 class="text-2xl font-bold">ผลลัพธ์${rec.name ? `ของ ${esc(rec.name)}` : "ของคุณ"}</h1>
+      <p class="text-xs muted">${fmtDate(rec.date)} · ${STATUS[rec.status] || ""} · ใช้เวลา ${fmtDur(rec.durationSec)}</p></div>
+    <div class="no-print flex flex-wrap gap-2">
+      <button data-action="print" class="btn btn-sm btn-ghost">🖨️ พิมพ์ / PDF</button>
+      <button data-action="export-json" class="btn btn-sm btn-ghost">⬇️ JSON</button>
+      <button data-action="copy" class="btn btn-sm btn-ghost">📋 คัดลอกสรุป</button></div>
+  </div>
+
+  <section class="glass p-6 text-center">
+    <div class="text-sm muted">Holland Code ของคุณ</div>
+    <div class="flex justify-center gap-3 sm:gap-6 mt-3">
+      ${top3.map((L, i) => `<div class="${anim ? "pop" : ""}" style="${anim ? `animation-delay:${0.9 + i * 0.35}s` : ""}">
+        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl flex items-center justify-center text-5xl sm:text-6xl font-bold text-white shadow-lg" style="background:${COLOR[L]}">${L}</div>
+        <div class="text-sm font-semibold mt-2">${TYPES[L].nick}</div><div class="text-xs muted">${TYPES[L].name}</div></div>`).join("")}
+    </div>
+    ${d.tieWarning ? `<div class="text-xs muted mt-3">รหัสทางเลือก: <b>${d.ranked[0] + d.ranked[1] + d.ranked[3]}</b> (อันดับ 3–4 คะแนนเท่ากัน)</div>` : ""}
+  </section>
+
+  <section class="grid md:grid-cols-2 gap-5 mt-5">
+    <div class="glass p-4">${renderHexagon(rec.scores, { animate: anim, top: top3 })}</div>
+    <div class="glass p-5">
+      <h2 class="font-semibold text-lg mb-3">คะแนน 6 ด้าน</h2>
+      <div class="space-y-2.5">${d.ranked.map(c => `<div class="flex items-center gap-2">${letter(c)}<span class="text-sm w-24 shrink-0">${TYPES[c].nick}</span>
+        <div class="flex-1 h-3 rounded-full bg-slate-400/20 overflow-hidden"><div class="h-full rounded-full" style="width:${rec.scores[c]}%;background:${COLOR[c]}"></div></div>
+        <span class="text-sm font-semibold w-8 text-right">${rec.scores[c]}</span></div>`).join("")}</div>
+      <div class="grid grid-cols-2 gap-3 mt-5">
+        ${gauge((4 - d.consistency.distance) / 3, "Consistency", d.consistency.level, `${d.ranked[0]}–${d.ranked[1]} ห่างกัน ${d.consistency.distance} ช่อง`)}
+        ${gauge(Math.max(Math.min(d.differentiation.range / 60, 1), .04), "Differentiation", d.differentiation.level, `ช่วงคะแนน ${d.differentiation.range}`)}
+      </div>
+    </div>
+  </section>
+
+  <section class="glass p-5 mt-5">
+    <h2 class="font-semibold text-lg mb-2">💡 ข้อสังเกตจากผลของคุณ</h2>
+    <ul class="space-y-2 text-sm">${insightsFor(rec, d).map(([e, t]) => `<li class="flex gap-2"><span>${e}</span><span>${t}</span></li>`).join("")}</ul>
+  </section>
+  ${targetHtml}
+
+  <h2 class="font-semibold text-xl mt-8 mb-3">🧬 บุคลิกภาพ 3 อันดับแรก</h2>
+  <div class="space-y-4">${top3.map((c, i) => { const t = TYPES[c]; return `<section class="glass p-5" style="border-left:6px solid ${COLOR[c]}">
+    <div class="flex items-center gap-3">${letter(c, "w-10 h-10 text-lg")}<div><div class="font-semibold">อันดับ ${i + 1}: ${t.emoji} ${t.nick} (${t.name}) · ${rec.scores[c]} คะแนน</div><div class="text-xs muted">ค่านิยม: ${t.values}</div></div></div>
+    <p class="text-sm mt-3">${t.summary}</p>
+    <div class="grid sm:grid-cols-2 gap-4 mt-3 text-sm">
+      <div><div class="font-medium">💪 จุดแข็ง</div><ul class="muted list-disc pl-5">${t.strengths.map(s => `<li>${s}</li>`).join("")}</ul></div>
+      <div><div class="font-medium">⚠️ สิ่งที่ควรระวัง</div><ul class="muted list-disc pl-5">${t.challenges.map(s => `<li>${s}</li>`).join("")}</ul></div>
+      <div><div class="font-medium">🏢 สภาพแวดล้อมงานที่เหมาะ</div><p class="muted">${t.workEnv}</p></div>
+      <div><div class="font-medium">🎓 สาขาวิชาที่เหมาะ</div><p class="muted">${t.majors.join(" · ")}</p></div>
+    </div>
+    <div class="text-sm mt-3"><div class="font-medium">🧭 คำแนะนำ</div><ul class="muted list-disc pl-5">${t.tips.map(s => `<li>${s}</li>`).join("")}</ul></div>
+  </section>`; }).join("")}</div>
+
+  <h2 class="font-semibold text-xl mt-8 mb-1">🏆 อาชีพแนะนำ Top 10</h2>
+  <p class="text-xs muted mb-3">เรียงตาม % ความเข้ากัน (Congruence) กับรหัส ${d.code} · แตะเพื่อดูรายละเอียด</p>
+  <div class="glass p-4 space-y-2">${careers.map(({ c, fit }, i) => careerCard(c, fit, i + 1)).join("")}</div>
+
+  <div class="no-print flex flex-wrap gap-3 justify-center mt-6">
+    <button data-action="go" data-view="explorer" class="btn btn-primary">🔎 สำรวจอาชีพทั้งหมด</button>
+    <button data-action="go" data-view="history" class="btn btn-ghost">🗂️ ประวัติ / เปรียบเทียบ</button>
+    <button data-action="start-new" class="btn btn-ghost">🔄 ทำใหม่</button>
+  </div>
+  <p class="text-xs muted mt-8 glass-soft p-4">⚠️ ${DISCLAIMER}</p>`;
+}
+
+function explorerList() {
+  const ex = state.explorer, uc = userCode(), q = ex.q.trim().toLowerCase();
+  let list = CAREERS.map(c => ({ c, fit: uc ? careerFit(uc, c.code) : null }))
+    .filter(({ c }) => (!q || (c.name + " " + c.field + " " + c.desc + " " + c.code).toLowerCase().includes(q))
+      && (!ex.field || c.field === ex.field)
+      && [...ex.codes].every(L => c.code.includes(L)));
+  if (ex.sort === "fit" && uc) list.sort((a, b) => b.fit - a.fit);
+  else list.sort((a, b) => a.c.name.localeCompare(b.c.name, "th"));
+  return `<p class="text-xs muted mb-2">พบ ${list.length} อาชีพ</p>` +
+    (list.length ? `<div class="space-y-2">${list.map(({ c, fit }) => careerCard(c, fit)).join("")}</div>` : `<div class="text-center muted py-8">ไม่พบอาชีพที่ตรงกับเงื่อนไข 🔍</div>`);
+}
+function viewExplorer() {
+  const ex = state.explorer, uc = userCode();
+  return `<h1 class="text-3xl font-bold mb-1">🔎 Career Explorer</h1>
+  <p class="muted text-sm mb-4">${uc ? `เทียบความเข้ากันกับรหัสของคุณ ${codeChips(uc)}` : `ยังไม่มีผลการทดสอบ — <button data-action="${hasProgress() ? "resume" : "start"}" class="underline">ทำแบบทดสอบ</button> เพื่อดู % ความเข้ากัน`}</p>
+  <div class="glass p-4 space-y-3">
+    <input data-input="q" type="search" class="field" placeholder="ค้นหาอาชีพ สายงาน หรือรหัส เช่น “สุขภาพ”, “ICR”" value="${esc(ex.q)}">
+    <div class="flex flex-wrap items-center gap-2">
+      ${HEX.map(c => { const on = ex.codes.has(c); return `<button data-action="ex-code" data-v="${c}" aria-pressed="${on}" class="px-3 py-1 rounded-full text-sm font-semibold border-2 transition" style="border-color:${COLOR[c]};${on ? `background:${COLOR[c]};color:#fff` : ""}">${c} ${TYPES[c].nick}</button>`; }).join("")}
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <select data-input="field" class="field"><option value="">ทุกสายงาน</option>${FIELDS.map(f => `<option ${ex.field === f ? "selected" : ""}>${esc(f)}</option>`).join("")}</select>
+      <select data-input="sort" class="field"><option value="fit" ${ex.sort === "fit" ? "selected" : ""}>เรียงตาม % ความเข้ากัน</option><option value="name" ${ex.sort === "name" ? "selected" : ""}>เรียงตามชื่อ</option></select>
+    </div>
+  </div>
+  <div id="explorer-list" class="glass p-4 mt-4">${explorerList()}</div>`;
+}
+
+function viewHistory() {
+  const h = state.history;
+  if (!h.length) return `<h1 class="text-3xl font-bold mb-4">🗂️ ประวัติผลการทดสอบ</h1><div class="glass p-8 text-center"><p class="muted">ยังไม่มีผลการทดสอบที่บันทึกไว้</p><button data-action="${hasProgress() ? "resume" : "start"}" class="btn btn-primary mt-4">เริ่มทำแบบทดสอบ</button></div>`;
+  const sel = state.compare.map(id => h.find(r => r.id === id)).filter(Boolean);
+  let cmp = "";
+  if (sel.length === 2) {
+    const [a, b] = sel;
+    cmp = `<section class="glass p-5 mt-5"><h2 class="font-semibold text-lg mb-1">📊 เปรียบเทียบ</h2>
+      <div class="flex flex-wrap gap-4 text-xs mb-2"><span><span class="inline-block w-3 h-3 rounded-sm align-middle" style="background:#8b5cf6"></span> ${fmtDate(a.date)} (${a.code})</span>
+        <span><span class="inline-block w-3 h-3 rounded-sm align-middle" style="background:#f59e0b"></span> ${fmtDate(b.date)} (${b.code})</span></div>
+      <div class="grid md:grid-cols-2 gap-4 items-center"><div>${renderHexagon(a.scores, { compare: b.scores })}</div>
+      <table class="w-full text-sm"><thead><tr class="muted text-left"><th class="py-1">ด้าน</th><th class="text-right">ครั้งแรกที่เลือก</th><th class="text-right">ครั้งที่สอง</th><th class="text-right">ต่าง</th></tr></thead><tbody>
+        ${HEX.map(c => { const df = a.scores[c] - b.scores[c]; return `<tr class="border-t border-slate-400/20"><td class="py-1.5">${letter(c)} ${TYPES[c].nick}</td><td class="text-right font-semibold">${a.scores[c]}</td><td class="text-right font-semibold">${b.scores[c]}</td><td class="text-right ${df > 0 ? "text-emerald-500" : df < 0 ? "text-rose-500" : "muted"}">${df > 0 ? "+" : ""}${df}</td></tr>`; }).join("")}
+      </tbody></table></div></section>`;
+  }
+  return `<div class="flex items-end justify-between gap-2 mb-4"><div><h1 class="text-3xl font-bold">🗂️ ประวัติผลการทดสอบ</h1><p class="text-sm muted">ติ๊กเลือก 2 ครั้งเพื่อเปรียบเทียบ</p></div>
+    <button data-action="clear-all" class="btn btn-sm btn-ghost text-rose-500">🗑️ ล้างข้อมูลทั้งหมด</button></div>
+  <div class="space-y-3">${h.map(r => `<div class="glass p-4 flex flex-wrap items-center gap-3">
+    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-input="compare" data-id="${r.id}" ${state.compare.includes(r.id) ? "checked" : ""} class="w-5 h-5 accent-violet-500"><span class="sr-only">เลือกเพื่อเปรียบเทียบ</span></label>
+    <div class="flex gap-1">${[...r.code].map(L => letter(L, "w-9 h-9 text-lg")).join("")}</div>
+    <div class="flex-1 min-w-[9rem]"><div class="font-medium">${esc(r.name) || "ไม่ระบุชื่อ"} <span class="text-xs muted">· ${STATUS[r.status] || ""}</span></div>
+      <div class="text-xs muted">${fmtDate(r.date)} · ${fmtDur(r.durationSec)}${r.targetCareer ? ` · เป้าหมาย: ${esc(r.targetCareer)}` : ""}</div></div>
+    <div class="flex gap-2"><button data-action="open" data-id="${r.id}" class="btn btn-sm btn-primary">ดูผล</button>
+      <button data-action="del" data-id="${r.id}" class="btn btn-sm btn-ghost" aria-label="ลบ">🗑️</button></div></div>`).join("")}</div>${cmp}`;
+}
+
+const VIEWS = { landing: viewLanding, about: viewAbout, profile: viewProfile, partA: viewPartA, partB: viewPartB, partC: viewPartC, result: viewResult, explorer: viewExplorer, history: viewHistory };
+
+function render() {
+  $("#app").innerHTML = header() + `<main class="max-w-5xl mx-auto px-4 py-6 pb-16"><div class="view" data-view-name="${state.view}">${VIEWS[state.view]()}</div></main><div id="modal"></div>`;
+  state.fresh = false;
+}
+function go(view) {
+  if (view === "partA") state.cursor = Math.max(pageIds(state.index).findIndex(id => !state.activities[id]), 0);
+  state.view = view;
+  saveProgress();
+  render();
+  window.scrollTo(0, 0);
+}
+function showModal(title, text, confirmLabel, fn) {
+  modalFn = fn;
+  $("#modal").innerHTML = `<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50" data-action="modal-close">
+    <div class="glass p-6 max-w-sm w-full !bg-white/90 dark:!bg-slate-800/95" role="dialog" aria-modal="true" onclick="event.stopPropagation()">
+      <h3 class="font-semibold text-lg">${title}</h3><p class="text-sm muted mt-2">${text}</p>
+      <div class="flex justify-end gap-2 mt-5"><button data-action="modal-close" class="btn btn-sm btn-ghost">ยกเลิก</button>
+        <button data-action="modal-ok" class="btn btn-sm text-white bg-rose-500">${confirmLabel}</button></div></div></div>`;
+}
+function closeModal() { modalFn = null; const m = $("#modal"); if (m) m.innerHTML = ""; }
+
+/* =====================================================================
+   ACTIONS
+   ===================================================================== */
+function startTest() { resetTest(); state.startedAt = Date.now(); go("profile"); }
+function next() {
+  if (state.view === "profile") return go("partA");
+  if (state.view === "partA") {
+    if (!pageDone(state.index)) return toast("ตอบให้ครบทุกข้อในหน้านี้ก่อนนะ 🙏");
+    if (state.index < PAGES - 1) { state.index++; return go("partA"); }
+    return go("partB");
+  }
+  if (state.view === "partB") return go("partC");
+  if (state.view === "partC") return finish();
+}
+function prev() {
+  if (state.view === "profile") return go("landing");
+  if (state.view === "partA") { if (state.index > 0) { state.index--; return go("partA"); } return go("profile"); }
+  if (state.view === "partB") { state.index = PAGES - 1; return go("partA"); }
+  if (state.view === "partC") return go("partB");
+}
+function answer(id, v) {
+  state.activities[id] = v;
+  const ids = pageIds(state.index), nxt = ids.findIndex(i => !state.activities[i]);
+  state.cursor = nxt === -1 ? Math.min(ids.indexOf(id) + 1, ids.length - 1) : nxt;
+  saveProgress(); render();
+}
+function finish() {
+  const missing = ORDER.findIndex(id => !state.activities[id]);
+  if (missing !== -1) { state.index = Math.floor(missing / PAGE_SIZE); toast("ยังตอบ Part A ไม่ครบ"); return go("partA"); }
+  const r = calculate({ activities: state.activities, occupations: state.occupations, abilities: state.abilities });
+  const now = Date.now();
+  const rec = {
+    id: "r_" + now, date: new Date(now).toISOString(),
+    name: state.profile.name.trim(), status: state.profile.status,
+    targetCareer: state.profile.hasTarget ? state.profile.targetCareer : "",
+    durationSec: Math.max(1, Math.round((now - state.startedAt) / 1000)),
+    scores: r.scores, code: r.code
+  };
+  state.history.unshift(rec);
+  if (!store.set(K.history, state.history)) toast("บันทึกผลลงเครื่องไม่สำเร็จ");
+  resetTest();
+  state.result = rec; state.fresh = true;
+  go("result");
+}
+function summaryText(rec) {
+  const d = derive(rec.scores);
+  const top = CAREERS.map(c => ({ n: c.name, f: careerFit(d.code, c.code) })).sort((a, b) => b.f - a.f).slice(0, 5);
+  return [
+    `CareerHex — ผล Holland Code${rec.name ? " ของ " + rec.name : ""} (${fmtDate(rec.date)})`,
+    `รหัส: ${d.code} (${[...d.code].map(L => TYPES[L].nick).join(" · ")})`,
+    `คะแนน: ${HEX.map(c => `${c} ${rec.scores[c]}`).join(" | ")}`,
+    `Consistency: ${d.consistency.level} · Differentiation: ${d.differentiation.level} (ช่วง ${d.differentiation.range})`,
+    `อาชีพแนะนำ: ${top.map(t => `${t.n} (${t.f}%)`).join(", ")}`,
+    rec.targetCareer ? `อาชีพในใจ: ${rec.targetCareer} (${careerFit(d.code, (CAREERS.find(c => c.name === rec.targetCareer) || {}).code || "")}%)` : "",
+    "หมายเหตุ: แบบทดสอบเพื่อการเรียนรู้ ไม่ใช่แบบทดสอบมาตรฐานเชิงพาณิชย์"
+  ].filter(Boolean).join("\n");
+}
+function copyText(text) {
+  const fallback = () => {
+    const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = 0;
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) { /* ignore */ }
+    ta.remove(); toast(ok ? "คัดลอกสรุปแล้ว 📋" : "คัดลอกไม่สำเร็จ");
+  };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(() => toast("คัดลอกสรุปแล้ว 📋"), fallback);
+  else fallback();
+}
+function exportJson(rec) {
+  const d = derive(rec.scores);
+  const data = { ...rec, ranked: d.ranked, consistency: d.consistency, differentiation: d.differentiation, tieWarning: d.tieWarning,
+    careers: CAREERS.map(c => ({ name: c.name, code: c.code, fit: careerFit(d.code, c.code) })).sort((a, b) => b.fit - a.fit).slice(0, 10) };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  const a = document.createElement("a"); a.href = url; a.download = `careerhex-${d.code}-${rec.id}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const ACTIONS = {
+  go: el => go(el.dataset.view),
+  theme: () => { state.theme = state.theme === "dark" ? "light" : "dark"; store.set(K.theme, state.theme); applyTheme(); render(); },
+  start: startTest,
+  "start-new": () => hasProgress() ? showModal("เริ่มทำใหม่?", "คำตอบที่ทำค้างไว้จะถูกลบ", "เริ่มใหม่", startTest) : startTest(),
+  resume: () => go(loadProgress() || "profile"),
+  status: el => { state.profile.status = el.dataset.v; saveProgress(); render(); },
+  "has-target": el => { state.profile.hasTarget = el.dataset.v === "1"; saveProgress(); render(); },
+  answer: el => answer(+el.dataset.id, +el.dataset.v),
+  occ: el => {
+    const id = el.dataset.id, on = !state.occupations.has(id);
+    on ? state.occupations.add(id) : state.occupations.delete(id);
+    el.classList.toggle("on", on); el.setAttribute("aria-pressed", on);
+    const ck = el.querySelector("span"); ck.classList.toggle("flex", on); ck.classList.toggle("hidden", !on);
+    $("#occ-count").textContent = state.occupations.size;
+    saveProgress();
+  },
+  next, prev,
+  print: () => window.print(),
+  "export-json": () => exportJson(state.result),
+  copy: () => copyText(summaryText(state.result)),
+  "ex-code": el => { const c = el.dataset.v, s = state.explorer.codes; s.has(c) ? s.delete(c) : s.add(c); render(); },
+  open: el => { const r = state.history.find(x => x.id === el.dataset.id); if (r) { state.result = r; go("result"); } },
+  del: el => showModal("ลบผลครั้งนี้?", "ลบแล้วไม่สามารถกู้คืนได้", "ลบ", () => {
+    state.history = state.history.filter(x => x.id !== el.dataset.id);
+    state.compare = state.compare.filter(x => x !== el.dataset.id);
+    if (state.result && state.result.id === el.dataset.id) state.result = null;
+    store.set(K.history, state.history); render();
+  }),
+  "clear-all": () => showModal("ล้างข้อมูลทั้งหมด?", "ประวัติผลการทดสอบและคำตอบที่ทำค้างไว้ในเครื่องนี้จะถูกลบทั้งหมด", "ล้างข้อมูล", () => {
+    store.del(K.history); state.history = []; state.compare = []; state.result = null; resetTest(); go("landing"); toast("ล้างข้อมูลแล้ว");
+  }),
+  "modal-close": closeModal,
+  "modal-ok": () => { const fn = modalFn; closeModal(); if (fn) fn(); }
+};
+
+function onInput(e) {
+  const el = e.target, kind = el.dataset && el.dataset.input;
+  if (!kind) return;
+  if (kind === "name") { state.profile.name = el.value; saveProgress(); }
+  else if (kind === "target") { state.profile.targetCareer = el.value; saveProgress(); }
+  else if (kind === "ability") { state.abilities[el.dataset.code] = +el.value; $("#abv-" + el.dataset.code).textContent = el.value; saveProgress(); }
+  else if (kind === "q") { state.explorer.q = el.value; $("#explorer-list").innerHTML = explorerList(); }
+  else if (kind === "field" || kind === "sort") { state.explorer[kind] = el.value; $("#explorer-list").innerHTML = explorerList(); }
+  else if (kind === "compare" && e.type === "change") {
+    const id = el.dataset.id;
+    if (el.checked) { state.compare.push(id); if (state.compare.length > 2) state.compare.shift(); }
+    else state.compare = state.compare.filter(x => x !== id);
+    render();
+  }
+}
+
+function init() {
+  state.theme = store.get(K.theme, null) || (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  applyTheme();
+  const h = store.get(K.history, []);
+  state.history = Array.isArray(h) ? h.filter(r => r && r.scores && r.code) : [];
+  const step = loadProgress();          // refresh กลางคัน → กลับมาที่ part เดิม
+  if (step) { state.view = step; if (step === "partA") state.cursor = Math.max(pageIds(state.index).findIndex(id => !state.activities[id]), 0); }
+  render();
+
+  document.addEventListener("click", e => {
+    const el = e.target.closest("[data-action]");
+    if (!el || el.disabled) return;
+    const fn = ACTIONS[el.dataset.action];
+    if (fn) fn(el);
+  });
+  document.addEventListener("input", onInput);
+  document.addEventListener("change", onInput);
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") return closeModal();
+    if (modalFn || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target.matches && e.target.matches("input, select, textarea")) return;
+    if (state.view === "partA" && /^[1-5]$/.test(e.key)) { e.preventDefault(); return answer(pageIds(state.index)[state.cursor], +e.key); }
+    if (!TEST_VIEWS.includes(state.view)) return;
+    if (e.key === "ArrowRight") { e.preventDefault(); next(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
+  });
+  // พิมพ์เป็นโทนสว่างเสมอ
+  let wasDark = false;
+  window.addEventListener("beforeprint", () => { wasDark = document.documentElement.classList.contains("dark"); document.documentElement.classList.remove("dark"); });
+  window.addEventListener("afterprint", () => { if (wasDark) document.documentElement.classList.add("dark"); });
+}
+
+if (typeof document !== "undefined") init();
+</script>
+</body>
+</html>
